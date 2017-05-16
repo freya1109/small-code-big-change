@@ -1,0 +1,6 @@
+History: The idea of multiple imputation for handling missing data was first proposed by Rubin (1977).
+
+Basic Idea: Impute the missing data through appropriate models multiple times; fit separate (but same) analysis model on each 
+imputed data; Pool the results from previous separate analysis
+
+Pre-requisite assumptions: 
