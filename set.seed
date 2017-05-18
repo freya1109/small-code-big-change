@@ -1,0 +1,82 @@
+In order to replicate the results or simply for debugging, set.seed has been widedly used in R programming. 
+
+Initially, there is no seed; a new one is created from the current time and the process ID when one is required. 
+Hence different sessions will give different simulation results, by default. However, the seed might be restored from a 
+previous session if a previously saved workspace is restored.
+
+I have this issue because when I submit my jobs (same job multiple simulations) to cluster, I end up with identical results. 
+Which seems odd since the process ID (job id) should be different. However the job time is the same.
+
+So what I do is, my job is coded as:
+
+  #!/bin/sh
+
+  #SBATCH --mail-type=ALL
+  #SBATCH --mail-user=XXXXXX@umich.edu
+  #SBATCH --job-name=XXXX
+  #SBATCH --time=2-00:00:00
+  #SBATCH --array=1-20
+
+  srun R CMD BATCH ./Proj3/proj3parametricbootsMay11.R
+
+While the real R code I use is: 
+
+  library(mixtools,lib ='/home/Proj3/')
+
+
+  nsimulation <- 5
+  Simulation.pvalue.1 <- rep(0,nsimulation)
+  taskn <- as.numeric(Sys.getenv('SLURM_ARRAY_TASK_ID'))
+  set.seed(taskn)
+
+
+  for (k in 1:nsimulation){
+     x.1 <- rmvnorm(100, c(0, 0))
+     x.2 <- rmvnorm(60, c(4,-4))
+     x.3 <- rmvnorm(40,c(4,4))
+     X.1 <- rbind(x.1, x.2,x.3)
+
+  
+     mu1 <- list(as.numeric(X.1[sample(1:100,1),]), as.numeric(X.1[sample(101:200,1),]))
+     mu2 <- list(as.numeric(X.1[sample(1:100,1),]), as.numeric(X.1[sample(101:160,1),]),as.numeric(X.1[sample(161:200,1),]))
+  
+     out.1 <- mvnormalmixEM(X.1, arbvar = FALSE, mu = mu1,
+                         epsilon = 1e-06)
+     #out.1[2:5]
+     out.2 <- mvnormalmixEM(X.1, arbvar = FALSE, mu = mu2,
+                         epsilon = 1e-06)
+     # out.2[2:5]
+  
+     cutoff <- as.numeric(out.2[5]) - as.numeric(out.1[5])
+  
+  
+     cutoff.boots <- rep(0,1000)
+     for (i in 1:1000){
+          # parametric sample
+          n1 <- round(out.1$lambda[1]*200)
+          n2 <- 200 - n1
+    
+          x.boots.1 <- rmvnorm(n1,as.numeric(out.1$mu[[1]]),unlist(out.1$sigma))
+          x.boots.2 <- rmvnorm(n2,as.numeric(out.1$mu[[2]]),unlist(out.1$sigma))
+          x.boots <- rbind(x.boots.1,x.boots.2)
+    
+          # mu.boots.1 <- list(as.numeric(x.boots[sample(1:100,1),]), as.numeric(x.boots[sample(100:200,1),]))
+          # mu.boots.2 <- list(as.numeric(x.boots[sample(1:100,1),]), as.numeric(x.boots[sample(1:200,1),]),as.numeric(x.boots[sample(100:200,1),]))
+    
+          out.boots.1 <- mvnormalmixEM(x.boots, arbvar = FALSE, mu = mu1,
+                                 epsilon = 1e-06)
+          out.boots.2 <- mvnormalmixEM(x.boots, arbvar = FALSE, mu = mu2,
+                                 epsilon = 1e-06)
+    
+           cutoff.boots[i] <- as.numeric(out.boots.2[5]) - as.numeric(out.boots.1[5])
+    
+      }
+  
+  Simulation.pvalue.1[k] <- sum(ifelse(cutoff >= cutoff.boots,1,0))
+  
+  
+  
+  }
+ save(Simulation.pvalue.1, file=paste("/home/Proj3/Output for parametric bootstrap/Simulationwith3groups",taskn,".RData" , sep = ""))
+
+
