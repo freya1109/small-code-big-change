@@ -1,0 +1,9 @@
+It is always hard to debug within loops. 
+
+If there is an error message, loop will be terminated automatically; however, if there is only a warning message, the loop 
+will continue with warning message reported at the very end.
+
+In the debug process, we want to suspend the program whenever there is a warning message created.
+
+The code "options(warn=2)" helps to make a warning message into error message. 
+Afterwards, use options(warn=1) to restore the default setting.
