@@ -7,3 +7,10 @@ In the debug process, we want to suspend the program whenever there is a warning
 
 The code "options(warn=2)" helps to make a warning message into error message. 
 Afterwards, use options(warn=1) to restore the default setting.
+
+
+Warning signals a warning condition by (effectively) calling signalCondition. If there are no handlers or if all handlers 
+return, then the value of warn = getOption("warn") is used to determine the appropriate action. If warn is negative warnings 
+are ignored; if it is zero they are stored and printed after the top–level function has completed; if it is one they are 
+printed as they occur and if it is 2 (or larger) warnings are turned into errors. Calling warning(immediate. = TRUE) turns 
+warn <= 0 into warn = 1 for this call only.
